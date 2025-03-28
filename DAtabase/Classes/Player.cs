@@ -83,6 +83,7 @@ namespace DAtabase.Classes
                     Console.WriteLine("Player has defeated the enemy!");
                     state.QuestCompleted = true;
                     state.Enemy = null;
+                    state.Objective = "Talk to NPC";
                 }
 
                 Console.WriteLine("Press Enter to continue.");

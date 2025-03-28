@@ -16,5 +16,6 @@ namespace DAtabase.Classes
         public bool QuestAccepted { get; set; }
         public bool QuestCompleted { get; set; }
         public string Objective { get; set; }
+        public int SaveSlot { get; set; }
     }
 }

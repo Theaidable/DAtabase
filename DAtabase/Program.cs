@@ -1,6 +1,7 @@
 ﻿using DAtabase.Classes;
 using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,12 +11,7 @@ namespace DAtabase
     class Program
     {
         //string som skal bruges til at forbinde til databasen
-        /*static string connectionString = 
-         * "Server=servernavn;
-         * Database=databasenavn;
-         * Trusted_Connection=True;
-         * TrustServerCertificate=True;
-        */
+        static string connectionString = "Server=DAVID\\SQLEXPRESS01;Database=Shattered Reflections;Trusted_Connection=True;TrustServerCertificate=True;";
 
         static void Main(string[] args)
         {
@@ -71,9 +67,6 @@ namespace DAtabase
             Console.Clear();
             Console.WriteLine("Initializing Game...");
 
-            // Gem initial spiltilstand i databasen
-            SaveGame(state);
-
             Console.WriteLine();
             Console.WriteLine("Game initialized and saved. Press Enter to continue.");
             Console.ReadLine();
@@ -84,22 +77,68 @@ namespace DAtabase
 
         static void LoadGameAndPlay()
         {
-            GameState state = LoadGame();
+            Console.Clear();
+            Console.WriteLine("Select slot to load or type 'delete' to delete a save:");
 
-            //Hvis ikke der er nogen saved games, så skal man gå tilbage
-            if (state == null)
+            for (int slot = 1; slot <= 4; slot++)
             {
-                Console.WriteLine("No saved game found. Press Enter to return to main menu.");
+                bool hasSave = CheckIfSaveExists(slot);
+                Console.WriteLine($"{slot}. Slot {slot}: {(hasSave ? "Save exists" : "No saved game found")}");
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("5: Go back to main menu");
+
+            string choice = Console.ReadLine();
+
+            if (choice.ToLower() == "delete")
+            {
+                DeleteSave();
+                return;
+            }
+            else if (choice == "5")
+            {
+                return;
+            }
+
+            int selectedSlot;
+
+            if (!int.TryParse(choice, out selectedSlot) || selectedSlot < 1 || selectedSlot > 4)
+            {
+                Console.WriteLine("Invalid choice. Press Enter to continue");
                 Console.ReadLine();
                 return;
             }
 
-            Console.Clear();
-            Console.WriteLine("Loaded Game:");
-            DisplayGameState(state);
-            Console.WriteLine("Press Enter to continue playing.");
+            GameState state = LoadGame(selectedSlot);
+
+            if (state == null)
+            {
+                Console.WriteLine("No saved game found on this slot. Press Enter to continue.");
+                Console.ReadLine();
+                return;
+            }
+
+            Console.WriteLine("Game loaded. Press Enter to continue playing.");
             Console.ReadLine();
+
+            DisplayGameState(state);
             GameLoop(state);
+        }
+
+        static bool CheckIfSaveExists(int slot)
+        {
+            string query = "SELECT COUNT(*) FROM Player WHERE playerID=@slot";
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                con.Open();
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.Parameters.AddWithValue("@slot", slot);
+                    int count = (int)cmd.ExecuteScalar();
+                    return count > 0;
+                }
+            }
         }
 
         static void GameLoop(GameState state)
@@ -148,9 +187,6 @@ namespace DAtabase
                     default:
                         break;
                 }
-
-                // Auto-save efter hvert input
-                SaveGame(state);
             }
         }
 
@@ -175,11 +211,192 @@ namespace DAtabase
 
         static void SaveGame(GameState state)
         {
+            Console.WriteLine("Choose save slot (1-4):");
+            for (int slot = 1; slot <= 4; slot++)
+            {
+                bool hasSave = CheckIfSaveExists(slot);
+                Console.WriteLine($"{slot}. Slot {slot}: {(hasSave ? "Save exists" : "No saved game found")}");
+            }
+
+
+            int saveSlot;
+
+            if (!int.TryParse(Console.ReadLine(), out saveSlot) || saveSlot < 1 || saveSlot > 4)
+            {
+                Console.WriteLine("Invalid slot. Press Enter to continue.");
+                Console.ReadLine();
+                return;
+            }
+
+            state.SaveSlot = saveSlot;
+
+            string queryPlayer = @"
+                IF EXISTS (SELECT * FROM Player WHERE playerID = @slot)
+                    UPDATE Player SET PlayerHealth=@health, PositionX=@x, PositionY=@y, Currency=@coins WHERE playerID=@slot
+                ELSE
+                    INSERT INTO Player(playerID,PlayerHealth,PositionX,PositionY,Currency) VALUES (@slot,@health,@x,@y,@coins);";
+
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                con.Open();
+                using (SqlCommand cmd = new SqlCommand(queryPlayer, con))
+                {
+                    cmd.Parameters.AddWithValue("@slot", state.SaveSlot);
+                    cmd.Parameters.AddWithValue("@health", state.Player.Health);
+                    cmd.Parameters.AddWithValue("@x", state.Player.X);
+                    cmd.Parameters.AddWithValue("@y", state.Player.Y);
+                    cmd.Parameters.AddWithValue("@coins", state.Player.SoulCoins);
+                    cmd.ExecuteNonQuery();
+                }
+
+                // Gem Enemy-state (hvis enemy findes)
+                if (state.Enemy != null)
+                {
+                    string enemyQuery = @"
+                        IF EXISTS (SELECT * FROM Enemies WHERE enemyID = @slot)
+                            UPDATE Enemies SET EnemyHealth=@health,PositionX=@x,PositionY=@y WHERE enemyID=@slot
+                        ELSE
+                            INSERT INTO Enemies(enemyID,EnemyHealth,PositionX,PositionY) VALUES (@slot,@health,@x,@y);";
+
+                    using (SqlCommand cmd = new SqlCommand(enemyQuery, con))
+                    {
+                        cmd.Parameters.AddWithValue("@slot", state.SaveSlot);
+                        cmd.Parameters.AddWithValue("@health", state.Enemy.Health);
+                        cmd.Parameters.AddWithValue("@x", state.Enemy.X);
+                        cmd.Parameters.AddWithValue("@y", state.Enemy.Y);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+
+                // Gem Inventory-state
+                string clearInventory = "DELETE FROM Inventory WHERE playerID=@slot";
+                using (SqlCommand clearCmd = new SqlCommand(clearInventory, con))
+                {
+                    clearCmd.Parameters.AddWithValue("@slot", state.SaveSlot);
+                    clearCmd.ExecuteNonQuery();
+                }
+
+                foreach (var item in state.Inventory)
+                {
+                    string inventoryQuery = "INSERT INTO Inventory(playerID,itemID,Amount) VALUES(@slot,@itemName,@amount);";
+                    using (SqlCommand cmd = new SqlCommand(inventoryQuery, con))
+                    {
+                        cmd.Parameters.AddWithValue("@slot", state.SaveSlot);
+                        cmd.Parameters.AddWithValue("@itemName", item.Name); // Brug item.Name som nøgle her, ellers opret ItemID
+                        cmd.Parameters.AddWithValue("@amount", item.Amount);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+            }
         }
 
-        static GameState LoadGame()
+        static GameState LoadGame(int slot)
         {
-            return null;
+            GameState state = new GameState();
+
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                con.Open();
+
+                // Indlæs Player
+                string queryPlayer = "SELECT * FROM Player WHERE playerID = @slot";
+                using (SqlCommand cmd = new SqlCommand(queryPlayer, con))
+                {
+                    cmd.Parameters.AddWithValue("@slot", slot);
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        if (!reader.Read())
+                            return null;
+
+                        state.Player = new Player
+                        {
+                            Health = reader.GetInt32(reader.GetOrdinal("PlayerHealth")),
+                            X = (int)reader.GetDouble(reader.GetOrdinal("PositionX")),
+                            Y = (int)reader.GetDouble(reader.GetOrdinal("PositionY")),
+                            SoulCoins = reader.GetInt32(reader.GetOrdinal("Currency"))
+                        };
+                    }
+                }
+
+                // Indlæs Enemy
+                string enemyQuery = "SELECT * FROM Enemies WHERE enemyID = @slot";
+                using (SqlCommand cmd = new SqlCommand(enemyQuery, con))
+                {
+                    cmd.Parameters.AddWithValue("@slot", slot);
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            state.Enemy = new Enemy
+                            {
+                                Health = reader.GetInt32(reader.GetOrdinal("EnemyHealth")),
+                                X = (int)reader.GetDouble(reader.GetOrdinal("PositionX")),
+                                Y = (int)reader.GetDouble(reader.GetOrdinal("PositionY"))
+                            };
+                        }
+                        else
+                            state.Enemy = null;
+                    }
+                }
+
+                // Indlæs Inventory
+                state.Inventory = new List<Item>();
+                string inventoryQuery = "SELECT itemID,Amount FROM Inventory WHERE playerID = @slot";
+                using (SqlCommand cmd = new SqlCommand(inventoryQuery, con))
+                {
+                    cmd.Parameters.AddWithValue("@slot", slot);
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            state.Inventory.Add(new Item
+                            {
+                                Name = reader.GetString(reader.GetOrdinal("itemID")),
+                                Amount = reader.GetInt32(reader.GetOrdinal("Amount"))
+                            });
+                        }
+                    }
+                }
+
+                // Indstil standardværdier for NPC osv.
+                state.Npc = new NPC { X = 10, Y = 0 };
+                state.Objective = state.Enemy != null ? "Remove Monster" : "Talk to NPC";
+                state.QuestAccepted = state.Enemy != null;
+                state.QuestCompleted = false;
+                state.SaveSlot = slot;
+            }
+
+            return state;
+        }
+
+        static void DeleteSave()
+        {
+            Console.WriteLine("Select save slot to delete (1-4):");
+            int slotToDelete;
+            if (!int.TryParse(Console.ReadLine(), out slotToDelete) || slotToDelete < 1 || slotToDelete > 4)
+            {
+                Console.WriteLine("Invalid slot. Press Enter to return.");
+                Console.ReadLine();
+                return;
+            }
+
+            string query = "DELETE FROM Player WHERE playerID = @slot";
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                con.Open();
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.Parameters.AddWithValue("@slot", slotToDelete);
+                    int rowsAffected = cmd.ExecuteNonQuery();
+                    if (rowsAffected == 0)
+                        Console.WriteLine("Nothing to delete.");
+                    else
+                        Console.WriteLine($"Save slot {slotToDelete} deleted successfully.");
+
+                    Console.WriteLine("Press Enter to continue.");
+                    Console.ReadLine();
+                }
+            }
         }
     }
 }
