@@ -11,7 +11,7 @@ namespace DAtabase
     class Program
     {
         //string som skal bruges til at forbinde til databasen
-        static string connectionString = "Server=DAVID\\SQLEXPRESS01;Database=Shattered Reflections;Trusted_Connection=True;TrustServerCertificate=True;";
+        static string connectionString = @"Server=MSI\SQLEXPRESS;Database=DAtabase;Trusted_Connection=True;";
 
         static void Main(string[] args)
         {
