@@ -155,13 +155,23 @@ namespace DAtabase
         {
             Console.WriteLine($"Player position: x:{state.Player.X}  y:{state.Player.Y}");
             Console.WriteLine($"Health: {state.Player.Health} | Gold: {state.Player.SoulCoins}");
-            Console.WriteLine($"Objective: {state.Player.Objective}\n");
 
-            Console.WriteLine($"NPC position: x:{state.Npc.X}  y:{state.Npc.Y}\n");
+            // Hent objective fra den aktive (ufuldstændige) quest, hvis der er en
+            var activeQuest = state.Quests.FirstOrDefault(q => !q.Completed);
+            if (activeQuest != null)
+                Console.WriteLine($"Current objective: {activeQuest.Objective}");
+            else
+                Console.WriteLine("No active objective.");
+
+            Console.WriteLine();
+
+            Console.WriteLine($"NPC position: x:{state.Npc.X}  y:{state.Npc.Y}");
+            Console.WriteLine();
 
             if (state.Enemy != null)
                 Console.WriteLine($"Enemy '{state.Enemy.Name}' at x:{state.Enemy.X}, y:{state.Enemy.Y}, Health: {state.Enemy.Health}\n");
         }
+
 
         static void SaveGame(GameState state)
         {
