@@ -12,6 +12,7 @@ namespace DAtabase.Classes
         public int Y { get; set; }
         public int Health { get; set; }
         public int SoulCoins { get; set; }
+        public string Objective { get; set; }
 
         public static void Interact(GameState state)
         {
@@ -26,7 +27,7 @@ namespace DAtabase.Classes
                         "My old bones has gotten the better of me...'");
 
                     state.QuestAccepted = true;
-                    state.Objective = "Remove Monster";
+                    state.Player.Objective = "Remove Monster";
 
                     //Spawn enemy
                     state.Enemy = new Enemy { X = 15, Y = 0, Health = 100 };
@@ -55,7 +56,8 @@ namespace DAtabase.Classes
                     Console.WriteLine("NPC: 'Take your time, but please hurry and KILL IT!'");
                 }
 
-                Console.WriteLine("Press Ebter to continue.");
+                Console.WriteLine();
+                Console.WriteLine("Press Enter to continue.");
                 Console.ReadLine();
             }
 
@@ -83,7 +85,7 @@ namespace DAtabase.Classes
                     Console.WriteLine("Player has defeated the enemy!");
                     state.QuestCompleted = true;
                     state.Enemy = null;
-                    state.Objective = "Talk to NPC";
+                    state.Player.Objective = "Talk to NPC";
                 }
 
                 Console.WriteLine("Press Enter to continue.");
@@ -143,5 +145,28 @@ namespace DAtabase.Classes
                 state.Inventory.Add(new Item { Name = itemName, Amount = amount });
             }
         }
+
+        public static void ShowQuestLog(GameState state)
+        {
+            Console.Clear();
+            Console.WriteLine("--- Quest Log ---");
+
+            if (state.Quests.Count == 0)
+            {
+                Console.WriteLine("No quests currently.");
+            }
+            else
+            {
+                foreach (var quest in state.Quests)
+                {
+                    string status = quest.Completed ? "Completed" : "Active";
+                    Console.WriteLine($"{quest.Name} --- {status}");
+                    Console.WriteLine($"Objective: {quest.Objective}\n");
+                }
+            }
+            Console.WriteLine("Press Enter to return...");
+            Console.ReadLine();
+        }
+
     }
 }

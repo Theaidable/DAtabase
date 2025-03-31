@@ -62,7 +62,7 @@ namespace DAtabase
             state.Inventory = new List<Item>();
             state.QuestAccepted = false;
             state.QuestCompleted = false;
-            state.Objective = "Talk to NPC";
+            state.Player.Objective = "Talk to NPC";
 
             Console.Clear();
             Console.WriteLine("Initializing Game...");
@@ -178,6 +178,9 @@ namespace DAtabase
                     case ConsoleKey.I:
                         Player.ShowInventory(state);
                         break;
+                    case ConsoleKey.J:
+                        Player.ShowQuestLog(state);
+                        break;
                     case ConsoleKey.Q:
                         SaveGame(state);
                         break;
@@ -195,7 +198,7 @@ namespace DAtabase
             Console.WriteLine($"Player position: x: {state.Player.X}  y: {state.Player.Y}");
             Console.WriteLine($"Player health: {state.Player.Health}");
             Console.WriteLine($"Player gold: {state.Player.SoulCoins}");
-            Console.WriteLine($"Current objective: {state.Objective}");
+            Console.WriteLine($"Current objective: {state.Player.Objective}");
             Console.WriteLine();
             Console.WriteLine($"NPC position: x: {state.Npc.X}  y: {state.Npc.Y}");
             Console.WriteLine();
@@ -268,7 +271,7 @@ namespace DAtabase
                     }
                 }
 
-                // Gem Inventory-state
+                // Gem Inventory
                 string clearInventory = "DELETE FROM Inventory WHERE playerID=@slot";
                 using (SqlCommand clearCmd = new SqlCommand(clearInventory, con))
                 {
@@ -278,15 +281,44 @@ namespace DAtabase
 
                 foreach (var item in state.Inventory)
                 {
-                    string inventoryQuery = "INSERT INTO Inventory(playerID,itemID,Amount) VALUES(@slot,@itemName,@amount);";
+                    string inventoryQuery = @"
+                    INSERT INTO Inventory (playerID, itemID, Amount)
+                        SELECT @slot, itemID, @amount FROM Items WHERE itemName=@itemName;";
+
                     using (SqlCommand cmd = new SqlCommand(inventoryQuery, con))
                     {
                         cmd.Parameters.AddWithValue("@slot", state.SaveSlot);
-                        cmd.Parameters.AddWithValue("@itemName", item.Name); // Brug item.Name som nøgle her, ellers opret ItemID
+                        cmd.Parameters.AddWithValue("@itemName", item.Name);
                         cmd.Parameters.AddWithValue("@amount", item.Amount);
                         cmd.ExecuteNonQuery();
                     }
                 }
+
+                // Gem QuestLog
+                string clearQuests = "DELETE FROM QuestLog WHERE playerID=@slot";
+                using (SqlCommand clearQuestCmd = new SqlCommand(clearQuests, con))
+                {
+                    clearQuestCmd.Parameters.AddWithValue("@slot", state.SaveSlot);
+                    clearQuestCmd.ExecuteNonQuery();
+                }
+
+                foreach (var quest in state.Quests)
+                {
+                    string questLogQuery = @"
+                    INSERT INTO QuestLog (playerID, questID, completed)
+                        SELECT @slot, questID, @completed FROM Quest WHERE questName=@questName;";
+
+                    using (SqlCommand cmd = new SqlCommand(questLogQuery, con))
+                    {
+                        cmd.Parameters.AddWithValue("@slot", state.SaveSlot);
+                        cmd.Parameters.AddWithValue("@questName", quest.Name);
+                        cmd.Parameters.AddWithValue("@completed", quest.Completed ? 1 : 0);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+
+
+
             }
         }
 
@@ -339,9 +371,14 @@ namespace DAtabase
                     }
                 }
 
-                // Indlæs Inventory
+                // Load Inventory
                 state.Inventory = new List<Item>();
-                string inventoryQuery = "SELECT itemID,Amount FROM Inventory WHERE playerID = @slot";
+                string inventoryQuery = @"
+    SELECT I.itemID, I.itemName, Inv.Amount 
+    FROM Inventory Inv
+    JOIN Items I ON Inv.itemID = I.itemID 
+    WHERE Inv.playerID = @slot";
+
                 using (SqlCommand cmd = new SqlCommand(inventoryQuery, con))
                 {
                     cmd.Parameters.AddWithValue("@slot", slot);
@@ -351,16 +388,44 @@ namespace DAtabase
                         {
                             state.Inventory.Add(new Item
                             {
-                                Name = reader.GetString(reader.GetOrdinal("itemID")),
-                                Amount = reader.GetInt32(reader.GetOrdinal("Amount"))
+                                ItemID = reader.GetInt32(0),
+                                Name = reader.GetString(1),
+                                Amount = reader.GetInt32(2)
                             });
                         }
                     }
                 }
 
+                // Load QuestLog
+                state.Quests = new List<Quest>();
+                string questLogQuery = @"
+                    SELECT Q.questID, Q.questName, Q.questObjective, QL.completed
+                        FROM QuestLog QL
+                        JOIN Quest Q ON QL.questID = Q.questID 
+                        WHERE QL.playerID = @slot";
+
+                using (SqlCommand cmd = new SqlCommand(questLogQuery, con))
+                {
+                    cmd.Parameters.AddWithValue("@slot", slot);
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            state.Quests.Add(new Quest
+                            {
+                                QuestID = reader.GetInt32(0),
+                                Name = reader.GetString(1),
+                                Objective = reader.IsDBNull(2) ? null : reader.GetString(2),
+                                Completed = reader.GetBoolean(3)
+                            });
+                        }
+                    }
+                }
+
+
                 // Indstil standardværdier for NPC osv.
                 state.Npc = new NPC { X = 10, Y = 0 };
-                state.Objective = state.Enemy != null ? "Remove Monster" : "Talk to NPC";
+                state.Player.Objective = state.Enemy != null ? "Remove Monster" : "Talk to NPC";
                 state.QuestAccepted = state.Enemy != null;
                 state.QuestCompleted = false;
                 state.SaveSlot = slot;
