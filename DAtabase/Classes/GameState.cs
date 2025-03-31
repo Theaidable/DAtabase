@@ -17,5 +17,11 @@ namespace DAtabase.Classes
         public bool QuestAccepted { get; set; }
         public bool QuestCompleted { get; set; }
         public int SaveSlot { get; set; }
+
+        public GameState()
+        {
+            Inventory = new List<Item>();
+            Quests = new List<Quest>();
+        }
     }
 }
