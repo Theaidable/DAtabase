@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 
 namespace DAtabase.Classes
 {
-    class Item
+    class Quest
     {
-        //Public properties
-        public int ItemID { get; set; }
+        public int QuestID { get; set; }
         public string Name { get; set; }
-        public int Amount { get; set; }
+        public string Objective { get; set; }
+        public bool Completed { get; set; }
     }
 }

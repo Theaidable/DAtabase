@@ -13,8 +13,15 @@ namespace DAtabase.Classes
         public NPC Npc { get; set; }
         public Enemy Enemy { get; set; }
         public List<Item> Inventory { get; set; }
+        public List<Quest> Quests { get; set; }
         public bool QuestAccepted { get; set; }
         public bool QuestCompleted { get; set; }
-        public string Objective { get; set; }
+        public int SaveSlot { get; set; }
+
+        public GameState()
+        {
+            Inventory = new List<Item>();
+            Quests = new List<Quest>();
+        }
     }
 }
