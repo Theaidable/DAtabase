@@ -40,7 +40,7 @@ namespace DAtabase.Classes
                 // Hvis quest er accepteret og nu er fuldført (for eksempel via et angreb på enemy)
                 else if (state.QuestAccepted && state.QuestCompleted)
                 {
-                    Console.WriteLine("Old Man: 'You did it! Here, take this bloody napkin, some coins and potions as thanks.'");
+                    Console.WriteLine("Old Man: 'You did it! Here, take this napkin, some coins and potions as thanks.'");
                     state.Player.SoulCoins += 50;
                     AddToInventory(state, "Bloody napkin", 1);
                     AddToInventory(state, "Potion", 2);
