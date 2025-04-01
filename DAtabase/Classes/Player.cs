@@ -5,12 +5,17 @@ namespace DAtabase.Classes
 {
     class Player
     {
+        //Public properties
         public int X { get; set; }
         public int Y { get; set; }
         public int Health { get; set; }
         public int SoulCoins { get; set; }
         public string Objective { get; set; }
 
+        /// <summary>
+        /// Spillerens interaction metode
+        /// </summary>
+        /// <param name="state"></param>
         public static void Interact(GameState state)
         {
             // Hvis spilleren er ved NPC'ens position
@@ -71,7 +76,10 @@ namespace DAtabase.Classes
             }
         }
 
-
+        /// <summary>
+        /// Metode der styrer spillerens attack
+        /// </summary>
+        /// <param name="state"></param>
         public static void Attack(GameState state)
         {
             int damage = 25;
@@ -98,6 +106,10 @@ namespace DAtabase.Classes
             Console.ReadLine();
         }
 
+        /// <summary>
+        /// Viser spillerens inventory
+        /// </summary>
+        /// <param name="state"></param>
         public static void ShowInventory(GameState state)
         {
             Console.Clear();
@@ -117,6 +129,12 @@ namespace DAtabase.Classes
             Console.ReadLine();
         }
 
+        /// <summary>
+        /// Tilføjer items til spillerens inventory
+        /// </summary>
+        /// <param name="state"></param>
+        /// <param name="itemName"></param>
+        /// <param name="amount"></param>
         public static void AddToInventory(GameState state, string itemName, int amount)
         {
             var existing = state.Inventory.FirstOrDefault(i => i.Name == itemName);
@@ -127,6 +145,10 @@ namespace DAtabase.Classes
                 state.Inventory.Add(new Item { Name = itemName, Amount = amount });
         }
 
+        /// <summary>
+        /// Viser spillerens questlog, hvor man kan se sin progress med questen
+        /// </summary>
+        /// <param name="state"></param>
         public static void ShowQuestLog(GameState state)
         {
             Console.Clear();

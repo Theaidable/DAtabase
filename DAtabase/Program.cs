@@ -8,20 +8,28 @@ namespace DAtabase
 {
     class Program
     {
+        //String værdi som bruges til at forbinde til databasen
         static string connectionString = "";
 
+        /// <summary>
+        /// Main
+        /// </summary>
+        /// <param name="args"></param>
         static void Main(string[] args)
         {
+            // Vælg database
             ChooseDatabase();
 
             bool exit = false;
+            
             while (!exit)
             {
                 Console.Clear();
                 Console.WriteLine("--- Shattered Reflections ---");
                 Console.WriteLine("1. New Game");
                 Console.WriteLine("2. Load Game");
-                Console.WriteLine("3. Quit Game");
+                Console.WriteLine("3. Choose Database");
+                Console.WriteLine("4. Quit Game");
                 Console.Write("\nEnter your choice: ");
 
                 switch (Console.ReadLine())
@@ -33,6 +41,9 @@ namespace DAtabase
                         LoadGameAndPlay();
                         break;
                     case "3":
+                        ChooseDatabase();
+                        break;
+                    case "4":
                         exit = true;
                         break;
                     default:
@@ -75,6 +86,9 @@ namespace DAtabase
             }
         }
 
+        /// <summary>
+        /// Starter et nyt spil
+        /// </summary>
         static void NewGame()
         {
             GameState state = new GameState
@@ -96,6 +110,9 @@ namespace DAtabase
             GameLoop(state);
         }
 
+        /// <summary>
+        /// Loader et spil, så man kan starte hvor man slap
+        /// </summary>
         static void LoadGameAndPlay()
         {
             Console.Clear();
@@ -139,6 +156,11 @@ namespace DAtabase
             GameLoop(state);
         }
 
+        /// <summary>
+        /// Metode til at checke om der er et spil gemt
+        /// </summary>
+        /// <param name="slot"></param>
+        /// <returns></returns>
         static bool CheckIfSaveExists(int slot)
         {
             string query = "SELECT COUNT(*) FROM Player WHERE playerID=@slot";
@@ -153,6 +175,10 @@ namespace DAtabase
             }
         }
 
+        /// <summary>
+        /// Styrer selve game loopet, hvilket indebærer player controls
+        /// </summary>
+        /// <param name="state"></param>
         static void GameLoop(GameState state)
         {
             bool playing = true;
@@ -180,6 +206,10 @@ namespace DAtabase
             }
         }
 
+        /// <summary>
+        /// Viser gameplay state, som blandt andet spillerens liv og position
+        /// </summary>
+        /// <param name="state"></param>
         static void DisplayGameState(GameState state)
         {
             Console.WriteLine($"Player position: x:{state.Player.X}  y:{state.Player.Y}");
@@ -201,7 +231,10 @@ namespace DAtabase
                 Console.WriteLine($"Enemy '{state.Enemy.Name}' at x:{state.Enemy.X}, y:{state.Enemy.Y}, Health: {state.Enemy.Health}\n");
         }
 
-
+        /// <summary>
+        /// Metode til at gemme spillets tilstand
+        /// </summary>
+        /// <param name="state"></param>
         static void SaveGame(GameState state)
         {
             Console.WriteLine("Choose slot (1-4):");
@@ -249,6 +282,11 @@ namespace DAtabase
             Console.ReadLine();
         }
 
+        /// <summary>
+        /// Metode til at indlæse data fra databasen som bruges til at loade et foregående spil
+        /// </summary>
+        /// <param name="slot"></param>
+        /// <returns></returns>
         static GameState LoadGame(int slot)
         {
             GameState state = new GameState { SaveSlot = slot };
@@ -358,7 +396,9 @@ namespace DAtabase
             return state;
         }
 
-
+        /// <summary>
+        /// Bruges til at slette et gemt spil
+        /// </summary>
         static void DeleteSave()
         {
             Console.WriteLine("Enter slot (1-4):");

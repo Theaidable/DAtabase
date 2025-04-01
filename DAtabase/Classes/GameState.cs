@@ -18,6 +18,9 @@ namespace DAtabase.Classes
         public bool QuestCompleted { get; set; }
         public int SaveSlot { get; set; }
 
+        /// <summary>
+        /// Constructor til at oprette en ny gamestate
+        /// </summary>
         public GameState()
         {
             Inventory = new List<Item>();
