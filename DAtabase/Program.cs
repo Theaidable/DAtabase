@@ -8,12 +8,13 @@ namespace DAtabase
 {
     class Program
     {
-        static string connectionString = "Server=DAVID\\SQLEXPRESS01;Database=Shattered Reflections;Trusted_Connection=True;TrustServerCertificate=True;";
+        static string connectionString = "";
 
         static void Main(string[] args)
         {
-            bool exit = false;
+            ChooseDatabase();
 
+            bool exit = false;
             while (!exit)
             {
                 Console.Clear();
@@ -42,6 +43,38 @@ namespace DAtabase
             }
         }
 
+        /// <summary>
+        /// Præsenterer brugeren for to databasevalg og sætter connectionString.
+        /// </summary>
+        static void ChooseDatabase()
+        {
+            while (true)
+            {
+                Console.Clear();
+                Console.WriteLine("Choose database:");
+                Console.WriteLine("1) Asbjørn");
+                Console.WriteLine("2) David");
+                Console.Write("\nEnter your choice: ");
+                string choice = Console.ReadLine();
+
+                if (choice == "1")
+                {
+                    connectionString = "Server=MSI\\SQLEXPRESS;Database=DAtabase;Trusted_Connection=True;TrustServerCertificate=True;";
+                    break;
+                }
+                else if (choice == "2")
+                {
+                    connectionString = "Server=DAVID\\SQLEXPRESS01;Database=Shattered Reflections;Trusted_Connection=True;TrustServerCertificate=True;";
+                    break;
+                }
+                else
+                {
+                    Console.WriteLine("Invalid choice. Press any key to try again.");
+                    Console.ReadKey();
+                }
+            }
+        }
+
         static void NewGame()
         {
             GameState state = new GameState
@@ -59,10 +92,6 @@ namespace DAtabase
             };
 
             Console.Clear();
-            Console.WriteLine("Initializing Game...");
-            Console.WriteLine("\nGame initialized. Press Enter to continue.");
-            Console.ReadLine();
-
             DisplayGameState(state);
             GameLoop(state);
         }

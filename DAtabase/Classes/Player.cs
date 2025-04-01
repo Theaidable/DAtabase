@@ -24,7 +24,7 @@ namespace DAtabase.Classes
                 // Hvis quest endnu ikke er accepteret, tilbydes den
                 else if (!state.QuestAccepted)
                 {
-                    Console.WriteLine("Old Man: 'Hey, wanderer! Could you help me? There's a monster ahead blocking the path. My old bones can't handle it. Please defeat it for me!'");
+                    Console.WriteLine("Old Man: 'Hey, you, wanderer, come here for a moment, I want you to help me out with something. You see that monster over there, he is blocking the path to move forward. I have gotten to old to do it myself, so would you please help this old man?'");
                     state.QuestAccepted = true;
                     state.Player.Objective = "Remove Monster";
                     state.Enemy = new Enemy { X = 15, Y = 0, Health = 100, Name = "Slime" };
@@ -40,7 +40,7 @@ namespace DAtabase.Classes
                 // Hvis quest er accepteret og nu er fuldført (for eksempel via et angreb på enemy)
                 else if (state.QuestAccepted && state.QuestCompleted)
                 {
-                    Console.WriteLine("Old Man: 'You did it! Here, take this napkin, some coins and potions as thanks.'");
+                    Console.WriteLine("Old Man: 'You did it! `Thank you so much. Here, take this napkin, some coins and potions and go on.'");
                     state.Player.SoulCoins += 50;
                     AddToInventory(state, "Bloody napkin", 1);
                     AddToInventory(state, "Potion", 2);
