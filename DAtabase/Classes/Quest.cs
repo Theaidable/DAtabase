@@ -8,6 +8,7 @@ namespace DAtabase.Classes
 {
     class Quest
     {
+        //Public properties
         public int QuestID { get; set; }
         public string Name { get; set; }
         public string Objective { get; set; }
